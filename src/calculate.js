@@ -15,3 +15,8 @@ function product(n, term = k => k, initial=1){
 }
 
 export {factorial, product}
+function term(k) {
+    return k * 2;
+}
+
+
