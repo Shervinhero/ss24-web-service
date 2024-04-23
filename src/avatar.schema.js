@@ -1,59 +1,41 @@
-import joi from 'joi';
+// avatar.schema.js
 
-export default joi.object( {
-    id: joi.any(),
-    createdAt: joi.any(),
+import Joi from 'joi';
 
-    avatarName: joi
-        .string()
-        .max(20)
-        .required(),
-
-    childAge: joi
-        .number()
+// Define the Avatar schema using Joi
+const avatarSchema = Joi.object({
+    avatarName: Joi.string()
+        .required()
+        .trim()
+        .label('Avatar Name'),
+    childAge: Joi.number()
+        .required()
         .integer()
         .min(0)
-        .max(100)
-        .required(),
-
-    skinColor: joi
-        .string()
-        .regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/)
-        .required(),
-
-    hairstyle: joi
-        .string()
-        .valid('classic_bob', 'messy_bun', 'long_layers', 'pixie_cut')
-        .default('classic_bob'),
-
-    headShape: joi
-        .string()
-        .valid('oval', 'round', 'square', 'diamond')
-        .default('oval'),
-
-    upperClothing: joi
-        .string()
-        .valid('tshirt', 'dress', 'hoodie', 'sweater')
-        .default('tshirt'),
-
-    lowerClothing: joi.alternatives()
-        .conditional(
-            'upperClothing', {
-                is: 'dress',
-                then: joi.forbidden(), //.optional(),
-                otherwise: joi
-                    .string()
-                    .valid('jeans', 'leggings', 'shorts', 'skirt')
-                    .default('shorts')
-            }),
+        .max(18)
+        .label('Child Age'),
+    skinColor: Joi.string()
+        .required()
+        .hex()
+        .length(7)
+        .label('Skin Color'),
+    hairstyle: Joi.string()
+        .required()
+        .valid('short', 'long', 'curly')
+        .label('Hairstyle'),
+    headShape: Joi.string()
+        .required()
+        .valid('round', 'oval', 'square')
+        .label('Head Shape'),
+    upperClothing: Joi.string()
+        .required()
+        .valid('shirt', 'jacket', 'sweater')
+        .label('Upper Clothing'),
+    lowerClothing: Joi.string()
+        .required()
+        .valid('pants', 'shorts', 'skirt')
+        .label('Lower Clothing')
 });
 
-// const newAvatar = {
-//     "avatarName": "Ed", //required, string, not empty, length limit
-//     "childAge": 5, // required, integer, min 4, max 100
-//     "skinColor": "#f5df9d", // required, rgb, hex, dez, presets
-//     "hairstyle": "messy_bun", // required/ default: 'classic_bob', ''
-//     "headShape": "oval", // default: 'oval', 'round', 'square'
-//     "upperClothing": "hoddie", // default: 'tshirt'
-//     "lowerClothing": "jeans" //  default: 'shorts'
-// }
+// Export the avatar schema
+export default avatarSchema;
