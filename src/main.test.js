@@ -1,5 +1,5 @@
 import {jest, test, expect, beforeEach, describe} from "@jest/globals"; // this is optional, all three are global variables im runner scope
-import app from './app.js';
+import app from './main.js';
 import request from 'supertest';
 
 describe('avatar api', () => {

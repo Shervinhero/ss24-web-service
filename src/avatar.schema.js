@@ -1,71 +1,59 @@
-import Joi from 'joi';
+import joi from 'joi';
 
-// Define the Joi validation schema
-export default Joi.object({
+export default joi.object( {
+    id: joi.any(),
+    createdAt: joi.any(),
 
-    // Unique identifier for the object
-    id: Joi.string().alphanum().length(24).required(),
-
-    // Timestamp when the object was created
-    createdAt: Joi.date().required(),
-
-    // Name of the avatar
-    avatarName: Joi.string()
+    avatarName: joi
+        .string()
         .max(20)
         .required(),
 
-    // Age of the child, ranging from 0 to 100
-    childAge: Joi.number()
+    childAge: joi
+        .number()
         .integer()
         .min(0)
-        .max(100),
+        .max(100)
+        .required(),
 
-    // Hexadecimal color code for skin color (e.g., #RRGGBB)
-    skinColor: Joi.string()
-        .pattern(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/),
+    skinColor: joi
+        .string()
+        .regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/)
+        .required(),
 
-    // Hairstyle options with a default value
-    hairstyle: Joi.string()
-        .valid(
-            'short',
-            'bald',
-            'short-curly',
-            'short-straight',
-            'medium-curly',
-            'medium-straight',
-            'long-curly',
-            'long-straight',
-            'dread-locks'
-        )
-        .default('medium-straight'),
+    hairstyle: joi
+        .string()
+        .valid('classic_bob', 'messy_bun', 'long_layers', 'pixie_cut')
+        .default('classic_bob'),
 
-    // Head shape options with a default value
-    headShape: Joi.string()
-        .valid(
-            'oval',
-            'round',
-            'heart',
-            'rectangular'
-        )
+    headShape: joi
+        .string()
+        .valid('oval', 'round', 'square', 'diamond')
         .default('oval'),
 
-    // Upper clothing options with a default value
-    upperClothing: Joi.string()
-        .valid(
-            'jacket',
-            'shirt',
-            'hoodie',
-            'dress'
-        )
-        .default('shirt'),
+    upperClothing: joi
+        .string()
+        .valid('tshirt', 'dress', 'hoodie', 'sweater')
+        .default('tshirt'),
 
-    // Lower clothing options based on the value of upperClothing
-    lowerClothing: Joi.alternatives()
-        .conditional('upperClothing', {
-            is: 'dress',
-            then: Joi.forbidden(),
-            otherwise: Joi.string()
-                .valid('shorts', 'pants', 'skirt')
-                .default('pants')
-        }),
+    lowerClothing: joi.alternatives()
+        .conditional(
+            'upperClothing', {
+                is: 'dress',
+                then: joi.forbidden(), //.optional(),
+                otherwise: joi
+                    .string()
+                    .valid('jeans', 'leggings', 'shorts', 'skirt')
+                    .default('shorts')
+            }),
 });
+
+// const newAvatar = {
+//     "avatarName": "Ed", //required, string, not empty, length limit
+//     "childAge": 5, // required, integer, min 4, max 100
+//     "skinColor": "#f5df9d", // required, rgb, hex, dez, presets
+//     "hairstyle": "messy_bun", // required/ default: 'classic_bob', ''
+//     "headShape": "oval", // default: 'oval', 'round', 'square'
+//     "upperClothing": "hoddie", // default: 'tshirt'
+//     "lowerClothing": "jeans" //  default: 'shorts'
+// }

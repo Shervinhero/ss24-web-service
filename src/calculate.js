@@ -1,3 +1,6 @@
+import {describe} from "@jest/globals";
+
+
 
 function factorial(n){
     if (n < 0) {
@@ -9,14 +12,16 @@ function factorial(n){
     }
 }
 
+
+
+
 function product(n, term = k => k, initial=1){
     // todo: implement the product `term(initial) * term(initial + 1) * term(initial + 2) * ... * term(initial + d)` with initial + d <= n
-    return 0;
+    let result = term(initial);
+    for(let i = initial+1; i<n; i++) {
+        result *= term(i)
+    }
 }
+
 
 export {factorial, product}
-function term(k) {
-    return k * 2;
-}
-
-
