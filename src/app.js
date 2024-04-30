@@ -1,193 +1,169 @@
-import express from 'express';
+import express from "express"
 import path from 'path';
-import { fileURLToPath } from 'url';
-import fs from 'fs';
-import { v4 as uuidv4 } from 'uuid';
+import {fileURLToPath} from 'url';
+import * as fs from "fs";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import {v4 as uuid} from 'uuid';
+import passport from 'passport'
+import {BasicStrategy} from 'passport-http';
+import bcrypt from "bcrypt";
 
-// Define the path to avatars.json
-const avatarsFilePath = path.join(__dirname, 'avatars.json');
+import avatarSchema from "./avatar.schema.js";
+import {isParent, isChild} from "./roles.js";
 
-// Create the Express app
-const app = express();
+// if import.meta.url is set we take the module dir from other, otherwise from  __dirname
+const module_dir = import.meta.url ? path.dirname(fileURLToPath(import.meta.url)) : __dirname;
 
-// Serve static files from the public directory
-app.use(express.static(path.join(__dirname, '..', 'public')));
+// create the data file in current working directory (cwd) if it does not yet exist
+const data_file = path.join(process.cwd(), 'avatars.json');
+if (!fs.existsSync(data_file)) {
+    fs.writeFileSync(data_file, JSON.stringify([]))
+}
 
-// Use JSON middleware to parse incoming JSON data
-app.use(express.json());
+const user_file = path.join(process.cwd(), 'users.json');
+if (!fs.existsSync(user_file)) {
+    fs.writeFileSync(user_file, JSON.stringify([]))
+}
 
-// API endpoint to create a new avatar and redirect to the detail page
-app.post('/api/avatars', (req, res) => {
-    const { avatarName, childAge, skinColor, hairstyle, headShape, upperClothing, lowerClothing } = req.body;
 
-    // Create a new avatar object
-    const newAvatar = {
-        id: uuidv4(),
-        avatarName,
-        childAge,
-        skinColor,
-        hairstyle,
-        headShape,
-        upperClothing,
-        lowerClothing,
-        createdAt: new Date().toISOString(),
-    };
+const app = express()
 
-    // Read the existing avatars from avatars.json
-    let avatars = [];
-    if (fs.existsSync(avatarsFilePath)) {
-        const data = fs.readFileSync(avatarsFilePath, 'utf8');
-        avatars = JSON.parse(data);
+passport.use(new BasicStrategy(
+    async function(userid, password, done) {
+        try {
+            const users = JSON.parse(fs.readFileSync(user_file, 'utf8'))
+            const user = users.find(user => user.userName === userid);
+            if (user) {
+                const isCorrect = await bcrypt.compare(password, user.password);
+                if(isCorrect) {
+                    done(null, user);
+                } else {
+                    done(null, false);
+                }
+            } else {
+                done(null, false);
+            }
+        } catch (err) {
+            done(err);
+        }
     }
+));
 
-    // Add the new avatar to the list
-    avatars.push(newAvatar);
 
-    // Save the updated avatars list back to avatars.json
-    fs.writeFileSync(avatarsFilePath, JSON.stringify(avatars, null, 2));
+app.use(express.static(path.join(module_dir, 'public')))
+app.use(express.json())
+app.use(passport.authenticate('basic', {session: false}));
 
-    // Redirect the user to the detail page of the newly created avatar
-    res.status(201)
-        .header('Location', `/avatar/${newAvatar.id}`)
-        .json(newAvatar);
-});
+app.get('/', function (req, res) {
+    res.sendFile(`index.html`)
+})
 
-// API endpoint to get all avatars
-app.get('/', (req, res) => {
-    res.sendFile('public/index.html', { root: path.join(__dirname) });
-});
+app.post('/api/avatars',
+    isParent,
+    (req, res) => {
+        console.log(" POST /api/avatars")
 
-app.get('/api/avatars', (req, res) => {
-    // Read the existing avatars from avatars.json
-    let avatars = [];
-    if (fs.existsSync(avatarsFilePath)) {
-        const data = fs.readFileSync(avatarsFilePath, 'utf8');
-        avatars = JSON.parse(data);
-    }
+        const {error, value} = avatarSchema.validate(req.body);
 
-    // Send the avatars as JSON
-    res.json(avatars);
-});
+        if (error) {
+            res.status(400).send(error)
+            return
+        }
 
-// API endpoint to get a single avatar by ID
-app.get('/api/avatars/:id', (req, res) => {
-    const avatarId = req.params.id;
+        const newAvatar = {
+            id: uuid(),
+            ...value,
+            createdAt: new Date(Date.now()).toISOString()
+        }
 
-    // Read the existing avatars from avatars.json
-    let avatars = [];
-    if (fs.existsSync(avatarsFilePath)) {
-        const data = fs.readFileSync(avatarsFilePath, 'utf8');
-        avatars = JSON.parse(data);
-    }
+        try {
+            const obj = JSON.parse(fs.readFileSync(data_file, "utf8"))
 
-    // Find the avatar with the given ID
-    const avatar = avatars.find(av => av.id === avatarId);
+            fs.writeFileSync(data_file, JSON.stringify([...obj, newAvatar]))
+            res.status(201).set("Location", `/api/avatars/${newAvatar.id}`).send(newAvatar)
+        } catch (e) {
+            res.sendStatus(500)
+        }
+    })
 
-    if (!avatar) {
-        res.status(404).send('Avatar not found');
-        return;
-    }
+app.get(
+    "/api/avatars",
+    isChild,
+    (req, res) => {
+        console.log(" GET /api/avatars")
+        const avatarsArray = JSON.parse(fs.readFileSync(data_file, "utf8"))
+        res.send(avatarsArray)
+    })
 
-    // Send the avatar as JSON
-    res.json(avatar);
-});
+app.get("/api/avatars/:id",
+    isChild,
+    (req, res) => {
+        const avatarID = req.params.id;
+        console.log(` GET /api/avatars/:${avatarID}`)
+        const avatarsArray = JSON.parse(fs.readFileSync(data_file, "utf8"))
+        const avatar = avatarsArray.find((av) => av.id === avatarID)
+        if (!avatar)
+            res.sendStatus(404)
+        else
+            res.send(avatar)
+    })
 
-// Serve the newly created avatar detail page
-app.get('/avatar/:id', (req, res) => {
-    const avatarId = req.params.id;
+app.put("/api/avatars/:id",
+    isParent,
+    async (req, res) => {
+        try {
+            const {error, value} = avatarSchema.validate(req.body, {abortEarly: false});
 
-    // Read the existing avatars from avatars.json
-    let avatars = [];
-    if (fs.existsSync(avatarsFilePath)) {
-        const data = fs.readFileSync(avatarsFilePath, 'utf8');
-        avatars = JSON.parse(data);
-    }
+            if (error) {
+                res.status(400).send(error)
+                return
+            }
 
-    // Find the avatar with the given ID
-    const avatar = avatars.find(av => av.id === avatarId);
+            const data = fs.readFileSync(data_file);
+            const avatars = JSON.parse(data);
 
-    if (!avatar) {
-        res.status(404).send('Avatar not found');
-        return;
-    }
+            const avatar = avatars.find(avatar => avatar.id === parseInt(req.params.id));
 
-    // Serve the HTML page displaying the avatar details
-    res.send(`
-        <h1>Avatar Created!</h1>
-        <p>Name: ${avatar.avatarName}</p>
-        <p>Age: ${avatar.childAge}</p>
-        <p>Skin Color: ${avatar.skinColor}</p>
-        <p>Hairstyle: ${avatar.hairstyle}</p>
-        <p>Head Shape: ${avatar.headShape}</p>
-        <p>Upper Clothing: ${avatar.upperClothing}</p>
-        <p>Lower Clothing: ${avatar.lowerClothing}</p>
-        <p>Created At: ${avatar.createdAt}</p>
-    `);
-});
+            if (!avatar) {
+                res.sendStatus(404)
+                return;
+            }
 
-// API endpoint to update an avatar by ID
-app.put('/api/avatars/:id', (req, res) => {
-    const avatarId = req.params.id;
+            avatar.avatarName = req.body.avatarName;
+            avatar.childAge = req.body.childAge;
+            avatar.skinColor = req.body.skinColor;
+            avatar.hairstyle = req.body.hairstyle;
+            avatar.headShape = req.body.headShape;
+            avatar.upperClothing = req.body.upperClothing;
+            avatar.lowerClothing = req.body.lowerClothing;
 
-    // Read the existing avatars from avatars.json
-    let avatars = [];
-    if (fs.existsSync(avatarsFilePath)) {
-        const data = fs.readFileSync(avatarsFilePath, 'utf8');
-        avatars = JSON.parse(data);
-    }
+            fs.writeFileSync(data_file, JSON.stringify(avatars))
 
-    // Find the avatar with the given ID
-    const avatarIndex = avatars.findIndex(av => av.id === avatarId);
+            res.sendStatus(204);
+        } catch {
+            res.sendStatus(500)
+        }
+    })
 
-    if (avatarIndex === -1) {
-        res.status(404).send('Avatar not found');
-        return;
-    }
+app.delete("/api/avatars/:id",
+    isParent,
+    (req, res) => {
+        const avatarID = parseInt(req.params.id)
+        console.log(` DELETE /api/avatars/:${avatarID}`)
+        const avatarsArray = JSON.parse(fs.readFileSync(data_file, "utf8"))
+        const avatar = avatarsArray.findIndex((av) => av.id === avatarID)
+        if (avatar === -1)
+            res.sendStatus(404)
+        else {
+            avatarsArray.splice(avatar, 1)
+            fs.writeFileSync(data_file, JSON.stringify(avatarsArray), (err) => {
+                if (err) {
+                    console.log("ERROR")
+                }
+            })
+            res.sendStatus(204)
+        }
 
-    // Update the avatar with new data from the request body
-    avatars[avatarIndex] = {
-        ...avatars[avatarIndex],
-        ...req.body,
-    };
+    })
 
-    // Save the updated avatars list back to avatars.json
-    fs.writeFileSync(avatarsFilePath, JSON.stringify(avatars, null, 2));
-
-    res.status(204).send();
-});
-
-// API endpoint to delete an avatar by ID
-app.delete('/api/avatars/:id', (req, res) => {
-    const avatarId = req.params.id;
-
-    // Read the existing avatars from avatars.json
-    let avatars = [];
-    if (fs.existsSync(avatarsFilePath)) {
-        const data = fs.readFileSync(avatarsFilePath, 'utf8');
-        avatars = JSON.parse(data);
-    }
-
-    // Find the avatar with the given ID
-    const avatarIndex = avatars.findIndex(av => av.id === avatarId);
-
-    if (avatarIndex === -1) {
-        res.status(404).send('Avatar not found');
-        return;
-    }
-
-    // Remove the avatar from the list
-    avatars.splice(avatarIndex, 1);
-
-    // Save the updated avatars list back to avatars.json
-    fs.writeFileSync(avatarsFilePath, JSON.stringify(avatars, null, 2));
-
-    res.status(204).send();
-});
-
-// Start the server on port 3000
-const PORT = 3000;
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-});
+export default app;

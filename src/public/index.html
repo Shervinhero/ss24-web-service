@@ -1,94 +1,53 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Create Avatar</title>
-    <!-- Add any additional stylesheets or scripts here -->
+    <meta charset="UTF-8">
+    <title>Avatar creation tool</title>
 </head>
 <body>
-<h1>Create Avatar</h1>
-<form id="avatarForm">
-    <label for="avatarName">Name:</label>
-    <input type="text" id="avatarName" name="avatarName" required><br><br>
 
-    <label for="childAge">Age:</label>
-    <input type="number" id="childAge" name="childAge" min="0" max="18" required><br><br>
+<h1>Avatar Creation Tool</h1>
 
-    <label for="skinColor">Skin Color:</label>
-    <input type="color" id="skinColor" name="skinColor" required><br><br>
+<form action="/create-avatar" method="post" style="display: flex; flex-direction: column; gap: 1rem; max-width: 10rem;">
+    <label for="avatarName">Avatar name:</label>
+    <input type="text" id="avatarName" name="avatarName">
+
+    <label for="childAge">Child age:</label>
+    <input type="number" id="childAge" name="childAge">
+
+    <label for="skinColor">Skin color:</label>
+    <input type="color" id="skinColor" name="skinColor">
 
     <label for="hairstyle">Hairstyle:</label>
-    <select id="hairstyle" name="hairstyle" required>
+    <select id="hairstyle" name="hairstyle">
         <option value="short">Short</option>
         <option value="long">Long</option>
-        <option value="curly">Curly</option>
-    </select><br><br>
+        <option value="bald">Bald</option>
+    </select>
 
-    <label for="headShape">Head Shape:</label>
-    <select id="headShape" name="headShape" required>
+    <label for="headShape">Head shape:</label>
+    <select id="headShape" name="headShape">
         <option value="round">Round</option>
         <option value="oval">Oval</option>
         <option value="square">Square</option>
-    </select><br><br>
+    </select>
 
-    <label for="upperClothing">Upper Clothing:</label>
-    <select id="upperClothing" name="upperClothing" required>
+    <label for="upperClothing">Upper clothing:</label>
+    <select id="upperClothing" name="upperClothing">
+        <option value="tshirt">T-shirt</option>
         <option value="shirt">Shirt</option>
         <option value="jacket">Jacket</option>
-        <option value="sweater">Sweater</option>
-    </select><br><br>
+    </select>
 
-    <label for="lowerClothing">Lower Clothing:</label>
-    <select id="lowerClothing" name="lowerClothing" required>
-        <option value="pants">Pants</option>
+    <label for="lowerClothing">Lower clothing:</label>
+    <select id="lowerClothing" name="lowerClothing">
         <option value="shorts">Shorts</option>
+        <option value="jeans">Jeans</option>
         <option value="skirt">Skirt</option>
-    </select><br><br>
+    </select>
 
-    <button type="submit">Create Avatar</button>
+    <button type="submit">Create</button>
 </form>
 
-<script>
-    // Form submission handler
-    document.getElementById('avatarForm').addEventListener('submit', function(event) {
-        event.preventDefault(); // Prevent default form submission
-
-        // Collect form data
-        const formData = new FormData(this);
-        const avatarData = {
-            avatarName: formData.get('avatarName'),
-            childAge: formData.get('childAge'),
-            skinColor: formData.get('skinColor'),
-            hairstyle: formData.get('hairstyle'),
-            headShape: formData.get('headShape'),
-            upperClothing: formData.get('upperClothing'),
-            lowerClothing: formData.get('lowerClothing'),
-        };
-
-        // Send data to the server using fetch
-        fetch('/api/avatars', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(avatarData),
-        })
-            .then(response => {
-                // Check for a successful status code (201 Created)
-                if (response.status === 201) {
-                    return response.json();
-                } else {
-                    throw new Error(`Error: ${response.status}`);
-                }
-            })
-            .then(data => {
-                console.log('Avatar created:', data);
-                // Redirect to the newly created avatar's page
-                window.location.href = `/avatar/${data.id}`;
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-    });
-</script>
 </body>
 </html>

@@ -1,41 +1,69 @@
-// avatar.schema.js
+import Joi from 'joi'
+export default Joi.object({
 
-import Joi from 'joi';
+    id: Joi.any(),
 
-// Define the Avatar schema using Joi
-const avatarSchema = Joi.object({
-    avatarName: Joi.string()
-        .required()
-        .trim()
-        .label('Avatar Name'),
-    childAge: Joi.number()
-        .required()
-        .integer()
-        .min(0)
-        .max(18)
-        .label('Child Age'),
+    createdAt: Joi.any(),
+
+    avatarName: Joi
+        .string()
+        .max(20)
+        .required(),
+
+    childAge: Joi
+        .number()
+        .integer().min(0).max(100)
+        .required(),
+
     skinColor: Joi.string()
-        .required()
-        .hex()
-        .length(7)
-        .label('Skin Color'),
-    hairstyle: Joi.string()
-        .required()
-        .valid('short', 'long', 'curly')
-        .label('Hairstyle'),
-    headShape: Joi.string()
-        .required()
-        .valid('round', 'oval', 'square')
-        .label('Head Shape'),
-    upperClothing: Joi.string()
-        .required()
-        .valid('shirt', 'jacket', 'sweater')
-        .label('Upper Clothing'),
-    lowerClothing: Joi.string()
-        .required()
-        .valid('pants', 'shorts', 'skirt')
-        .label('Lower Clothing')
-});
+        .regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/)
+        .required(),
 
-// Export the avatar schema
-export default avatarSchema;
+    hairstyle: Joi
+        .string()
+        .valid(
+            'short',
+            'bald',
+            'short-curly',
+            'short-straight',
+            'medium-curly',
+            'medium-straight',
+            'long-curly',
+            'long-straight',
+            'dread-locks')
+        .default('medium-straight'),
+
+    headShape: Joi
+        .string()
+        .valid(
+            'oval',
+            'round',
+            'heart',
+            'rectangular'
+        )
+        .default('oval'),
+    //"headShape": "oval", // 'oval'(default), 'round', 'heart', 'rectangular'
+
+    upperClothing: Joi
+        .string()
+        .valid(
+            'jacket',
+            'shirt',
+            'hoodie',
+            'dress'
+        )
+        .default('shirt'),
+
+    lowerClothing: Joi.alternatives()
+        .conditional(
+            'upperClothing', {
+                is: 'dress',
+                then: Joi.forbidden(), //.optional(),
+                otherwise: Joi
+                    .string()
+                    .valid('shorts', 'pants', 'skirt')
+                    .default('pants')
+            }),
+
+
+})
