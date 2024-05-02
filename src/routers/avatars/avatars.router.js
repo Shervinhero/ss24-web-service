@@ -13,10 +13,9 @@ if (!fs.existsSync(data_file)) {
 
 const avatarsRouter = Router()
 
-avatarsRouter.use(passport.authenticate('jwt', { session: false }))
+//avatarsRouter.use(passport.authenticate('jwt', { session: false }))
 
 avatarsRouter.post('/api/avatars',
-    isParent,
     (req, res) => {
         console.log(" POST /api/avatars")
 
@@ -45,12 +44,17 @@ avatarsRouter.post('/api/avatars',
 
 avatarsRouter.get(
     "/api/avatars",
-    isChild,
     (req, res) => {
         console.log(" GET /api/avatars")
+        const page = parseInt(req.query.page) || 1;
+        const size =parseInt(req.query.size) || 10;
+
         const avatarsArray = JSON.parse(fs.readFileSync(data_file, "utf8"))
         res.send(avatarsArray)
-    })
+        const startIndex = (page-1)* size;
+        const endIndex = page * size;
+        const avatarsPage=avatarsArray.slice(startIndex,endIndex);
+        res.send(avatarsPage)
 
 avatarsRouter.get("/api/avatars/:id",
     isChild,
@@ -120,7 +124,7 @@ avatarsRouter.delete("/api/avatars/:id",
             })
             res.sendStatus(204)
         }
-
-    })
+    });
+    });
 
 export default avatarsRouter;
